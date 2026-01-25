@@ -1,0 +1,64 @@
+# .sops.yaml
+#
+# Controls who can decrypt which secrets.
+#
+# Layout:
+#   systems/<arch>/<host>/secrets.yaml
+#   homes/<arch>/<user@host>/secrets.yaml
+#
+# How it works:
+# - `sops <file>` uses the FIRST matching rule below
+# - Listed AGE *public* keys become recipients
+# - ANY ONE matching *private* key can decrypt
+#
+# Generate keys:
+#   # create a private age key (keep secret)
+#   age-keygen -o ~/.config/sops/age/keys.txt
+#
+#   # print the public key (paste into keys:)
+#   age-keygen -y ~/.config/sops/age/keys.txt
+#
+#   # derive an age public key from an SSH host key
+#   ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub
+#
+
+# -------------------------------------------------------------------
+# PUBLIC AGE KEYS ONLY
+#
+# Example:
+#   - &admin age1...
+#   - &host_host1 age1...
+#
+keys: []
+
+creation_rules: # Rules are matched TOP → BOTTOM
+  # ---------------------------------------------------------------
+  # SYSTEM (host-level) secrets
+  #
+  # - path_regex: ^systems/x86_64-linux/ares/secrets\.ya?ml$
+  #   key_groups:
+  #     - age: [*admin, *host_host1]
+  #
+  - path_regex: ^systems/[^/]+/[^/]+/secrets\.ya?ml$
+    key_groups:
+      - age: []
+
+  # ---------------------------------------------------------------
+  # HOME (user@host) secrets
+  #
+  # - path_regex: ^homes/x86_64-linux/user1@ares/secrets\.ya?ml$
+  #   key_groups:
+  #     - age: [*admin, *host_host1]
+  #
+  - path_regex: ^homes/[^/]+/[^/]+/secrets\.ya?ml$
+    key_groups:
+      - age: []
+
+  # ---------------------------------------------------------------
+  # This rule intentionally BREAKS encryption if you forgot to
+  # configure a more specific rule.
+  #
+  - path_regex: .*
+    key_groups:
+      - age: [] # empty on purpose
+
