@@ -1,16 +1,10 @@
 {
   description = "stub secrets flake";
 
-  outputs =
-    { ... }:
-    {
-      nixosModules = { };
-      darwinModules = { };
-      homeModules = { };
-
-      templates.default = {
-        path = ./template;
-        description = "Initialize a private secrets repo.";
-      };
+  outputs = { ... }: {
+    templates.default = {
+      path = ./template;
+      description = "Initialize a private secrets repo that extends the main flake through layered secrets module hooks.";
     };
+  };
 }

@@ -2,9 +2,19 @@
 #
 # Controls who can decrypt which secrets.
 #
-# Layout:
+# Secret file layout (data) is intentionally separate from module layout.
+# Keep encrypted data wherever it makes sense for you, for example:
 #   systems/<arch>/<host>/secrets.yaml
 #   homes/<arch>/<user@host>/secrets.yaml
+#
+# The module export contract is documented in README.md. In short, the main
+# flake imports modules from:
+#   modules.secrets.<family>.<system>.common
+#   modules.secrets.<family>.<system>.outputs.<outputName>
+#   modules.secrets.home.<system>.outputs.<outputName>.users.<user>
+#
+# Your internal private module layout can be as simple or as complex as you want.
+# This template keeps it flat and descriptive.
 #
 # How it works:
 # - `sops <file>` uses the FIRST matching rule below
@@ -22,43 +32,20 @@
 #   ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub
 #
 
-# -------------------------------------------------------------------
-# PUBLIC AGE KEYS ONLY
-#
-# Example:
-#   - &admin age1...
-#   - &host_host1 age1...
-#
 keys: []
 
-creation_rules: # Rules are matched TOP → BOTTOM
-  # ---------------------------------------------------------------
-  # SYSTEM (host-level) secrets
-  #
-  # - path_regex: ^systems/x86_64-linux/ares/secrets\.ya?ml$
-  #   key_groups:
-  #     - age: [*admin, *host_host1]
-  #
+creation_rules:
+  # System (host-level) secrets.
   - path_regex: ^systems/[^/]+/[^/]+/secrets\.ya?ml$
     key_groups:
       - age: []
 
-  # ---------------------------------------------------------------
-  # HOME (user@host) secrets
-  #
-  # - path_regex: ^homes/x86_64-linux/user1@ares/secrets\.ya?ml$
-  #   key_groups:
-  #     - age: [*admin, *host_host1]
-  #
+  # Home (user@host) secrets.
   - path_regex: ^homes/[^/]+/[^/]+/secrets\.ya?ml$
     key_groups:
       - age: []
 
-  # ---------------------------------------------------------------
-  # This rule intentionally BREAKS encryption if you forgot to
-  # configure a more specific rule.
-  #
+  # Intentionally fail encryption if no rule matched above.
   - path_regex: .*
     key_groups:
-      - age: [] # empty on purpose
-
+      - age: []
