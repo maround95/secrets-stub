@@ -1,9 +1,8 @@
 { ... }:
 {
-  # Imported by:
-  #   modules.secrets.home.x86_64-linux.common
-  #
-  # Applies to every x86_64-linux Home Manager graph that imports secrets modules.
+  # Contributes to flake.modules.homeManager.profile-base.
+#
+  # Applies to Home Manager graphs that import that profile.
   #
   # Add shared private Home Manager behavior here later.
   # This file intentionally does nothing.

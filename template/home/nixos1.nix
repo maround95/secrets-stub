@@ -1,9 +1,8 @@
 { ... }:
 {
-  # Imported by:
-  #   modules.secrets.home.x86_64-linux.outputs.nixos1
-  #
-  # Applies to all Home Manager user graphs under the main flake output nixos1.
+  # Explicitly imported by the flake.modules.homeManager.nixos1-user1 contribution.
+#
+  # Import it in any other user nodes that should share this configuration.
   #
   # Add output-specific private Home Manager behavior here later.
   # This file intentionally does nothing.

@@ -1,9 +1,8 @@
 { ... }:
 {
-  # Imported by:
-  #   modules.secrets.darwin.aarch64-darwin.outputs.darwin1
-  #
-  # Applies only to the main flake output darwinConfigurations.darwin1.
+  # Contributes to flake.modules.darwin.darwin1.
+#
+  # Applies to graphs that import that node, including variants that inherit it.
   #
   # Add output-specific private Darwin behavior here later.
   # This file intentionally does nothing.

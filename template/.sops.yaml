@@ -4,17 +4,11 @@
 #
 # Secret file layout (data) is intentionally separate from module layout.
 # Keep encrypted data wherever it makes sense for you, for example:
-#   systems/<arch>/<host>/secrets.yaml
-#   homes/<arch>/<user@host>/secrets.yaml
+#   secrets/hosts/<host>.yaml
+#   secrets/users/<user@host>.yaml
 #
-# The module export contract is documented in README.md. In short, the main
-# flake imports modules from:
-#   modules.secrets.<family>.<system>.common
-#   modules.secrets.<family>.<system>.outputs.<outputName>
-#   modules.secrets.home.<system>.outputs.<outputName>.users.<user>
-#
-# Your internal private module layout can be as simple or as complex as you want.
-# This template keeps it flat and descriptive.
+# The main flake imports flakeModules.default, which contributes to its native
+# module registry. See README.md; secret data paths do not control module imports.
 #
 # How it works:
 # - `sops <file>` uses the FIRST matching rule below
@@ -36,12 +30,12 @@ keys: []
 
 creation_rules:
   # System (host-level) secrets.
-  - path_regex: ^systems/[^/]+/[^/]+/secrets\.ya?ml$
+  - path_regex: ^secrets/hosts/[^/]+\.ya?ml$
     key_groups:
       - age: []
 
   # Home (user@host) secrets.
-  - path_regex: ^homes/[^/]+/[^/]+/secrets\.ya?ml$
+  - path_regex: ^secrets/users/[^/]+\.ya?ml$
     key_groups:
       - age: []
 

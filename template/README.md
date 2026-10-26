@@ -1,93 +1,97 @@
-# Private secrets flake stub
+# Private secrets flake template
 
-This template is a no-op private flake that can extend a main dendritic flake.
-It intentionally defines no real secrets and no real configuration.
-
-The goal is to make the expected export contract clear and hard to get wrong.
-The main flake may import secrets modules from general to specific, using only
-static output-construction facts.
+This template exports a native flake-parts extension. All example configuration
+modules are no-ops; replace their contents with your private configuration.
 
 ## Export contract
 
-The public export shape is:
+The public flake imports the module value, not evaluated private configurations:
 
 ```nix
-modules.secrets.<family>.<system>.common
-modules.secrets.<family>.<system>.outputs.<outputName>
-modules.secrets.home.<system>.outputs.<outputName>.users.<user>
+imports = [ (inputs.secrets.flakeModules.default or { }) ];
 ```
 
-Where:
+`flakeModules.default` executes inside the **public** flake-parts evaluation. The
+private flake does not need an input dependency on the public flake. Its separate
+flake-parts evaluation only exports this module value and the development shells.
+The root stub exports an empty module through the same interface.
 
-- `family` is one of `nixos`, `home`, or `darwin`.
-- `system` is a Nix system string such as `x86_64-linux` or `aarch64-darwin`.
-- `outputName` is the main flake output name, such as `nixos1` or `darwin1`.
-- `user` is the Home Manager user key, only for Home Manager graphs.
-
-The main flake should import matching modules in this order:
-
-1. `modules.secrets.<family>.<system>.common`
-2. `modules.secrets.<family>.<system>.outputs.<outputName>`
-3. `modules.secrets.home.<system>.outputs.<outputName>.users.<user>` for Home Manager only
-
-General modules are imported first. More specific modules are imported later and
-may override earlier values using normal Nix module merging.
-
-## Examples
+The extension contributes to the public native module registry, for example:
 
 ```nix
-# Applies to all x86_64-linux NixOS outputs.
-modules.secrets.nixos.x86_64-linux.common = [
-  ./nixos/common.nix
-];
-
-# Applies only to nixosConfigurations.nixos1.
-modules.secrets.nixos.x86_64-linux.outputs.nixos1 = [
-  ./nixos/nixos1.nix
-];
-
-# Applies to all x86_64-linux Home Manager graphs.
-modules.secrets.home.x86_64-linux.common = [
-  ./home/common.nix
-];
-
-# Applies to all HM users under the output nixos1.
-modules.secrets.home.x86_64-linux.outputs.nixos1 = [
-  ./home/nixos1.nix
-];
-
-# Applies only to the HM user user1 under the output nixos1.
-modules.secrets.home.x86_64-linux.outputs.nixos1.users.user1 = [
-  ./home/nixos1-user1.nix
-];
-
-# Applies only to darwinConfigurations.darwin1.
-modules.secrets.darwin.aarch64-darwin.outputs.darwin1 = [
-  ./darwin/darwin1.nix
-];
+flakeModules.default = {
+  flake.modules = {
+    nixos.profile-common = ./nixos/common.nix;
+    nixos.nixos1 = ./nixos/nixos1.nix;
+    homeManager.profile-base = ./home/common.nix;
+    homeManager.nixos1-user1 = {
+      imports = [ ./home/nixos1.nix ./home/nixos1-user1.nix ];
+    };
+    darwin.darwin1 = {
+      imports = [ ./darwin/common.nix ./darwin/darwin1.nix ];
+    };
+  };
+};
 ```
 
-## Internal layout
+Inside this template's flake-parts configuration, this export is assigned at
+`flake.flakeModules.default`.
 
-This export shape does not force your repository layout. You can keep this flake
-as tiny as one `default.nix`, or split it into shared, host, user, work, and
-personal modules later.
+Registry entries have native `deferredModule` type: public and private
+contributions to the same entry combine as module imports. Do not import a node
+into itself to extend it. There is no custom secrets hierarchy or automatic
+family/system-wide routing.
 
-The files in this template are only examples. They intentionally do nothing.
+## Explicit nodes and sharing
+
+`nixos1`, `user1`, and `darwin1` are placeholders. Rename the entries to the public
+nodes you actually deploy: for example NixOS `ares`, `nova`, `vega`, or `zeus`,
+Darwin `lyra`, and Home Manager `nova-maroun`, `nova-root`, or `lyra-mdeeb`.
+Shared private behavior extends meaningful shared profile nodes such as
+`nixos.profile-common` or `homeManager.profile-base`; it applies only to graphs
+that import those nodes.
+
+The example `home/nixos1.nix` is shared deployment configuration imported alongside
+the user-specific file in `homeManager.nixos1-user1`. Import it explicitly in any
+other user nodes that should share it. Likewise, `darwin/common.nix` is explicitly
+imported by the example Darwin deployment.
+
+A variant importing a node inherits **both** its public and private contributions.
+For variant isolation, intentionally share a base node and compose separate
+deployment nodes rather than importing the deployment you want to avoid.
+
+Definitions use ordinary native Nix module merging. Later imports do not
+automatically override equal-priority scalar definitions; use `lib.mkDefault` or
+`lib.mkForce` as needed.
 
 ## Available context
 
-When these modules are imported by the main flake, they participate in the same
-module graph as the public modules. They can use the main graph's context, such
-as:
+Private configuration modules participate in the same downstream graph as public
+modules and can use:
 
-- `config.custom.target`
-- `config.custom.lib`
-- `config.custom.channels`
-- `pkgs`
-- in Home Manager graphs, `config.home.username` and `config.home.homeDirectory`
-- optionally, `config.custom.home.identity` if the main home graph sets it
+- `pkgs` and `pkgs.stdenv.hostPlatform` for native platform facts
+- `channels.stable`, `channels.unstable`, and `channels.unstable-small`
+- `inputs`
+- native `config.networking.hostName` / `config.users.users` in system graphs
+- `config.home.username` and `config.home.homeDirectory` in Home Manager graphs
 
-Do not use `config` to decide imports. Imports are selected by the main flake
-from static output facts. Use `lib.mkIf` only for conditional behavior inside
-already-imported modules.
+There are no `flakeModules`, `flakeLib`, or `outputName` special arguments. Select
+root imports statically, not from downstream `config`. Use `lib.mkIf` for
+conditional behavior inside already-imported modules. When another deferred
+module is needed, the outer flake-parts module can capture its
+`config.flake.modules` entry; simple literal contributions like these examples
+need no such capture.
+
+## Secret data
+
+Nix configuration lives in `nixos/`, `home/`, and `darwin/`. Secret data lives
+separately in `secrets/hosts/<host>.yaml` and `secrets/users/<user@host>.yaml`;
+there is no architecture-based routing. Modules explicitly reference the data
+files they need. The example YAML files are plaintext placeholders: configure
+recipients in `.sops.yaml` and encrypt them before adding real secrets.
+
+## Development shell
+
+The template retains default shells for `x86_64-linux`, `aarch64-linux`,
+`x86_64-darwin`, and `aarch64-darwin`, containing `sops`, `age`, `ssh-to-age`, and
+`yq`. Repository layout is otherwise up to you.

@@ -1,9 +1,8 @@
 { ... }:
 {
-  # Imported by:
-  #   modules.secrets.nixos.x86_64-linux.outputs.nixos1
-  #
-  # Applies only to the main flake output nixosConfigurations.nixos1.
+  # Contributes to flake.modules.nixos.nixos1.
+#
+  # Applies to graphs that import that node, including variants that inherit it.
   #
   # Add output-specific private NixOS/system behavior here later.
   # This file intentionally does nothing.
